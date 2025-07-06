@@ -1,13 +1,13 @@
 import pytest
 import asyncio
 import os
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker
-from app.database import Base, get_db
+from app.database import Base, get_db, engine  
 from app.config import settings
 from main import app
 
-# Don't override if already set by CI
+# Set test environment variables if not already set by CI
 if "DATABASE_URL" not in os.environ:
     os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
 if "SECRET_KEY" not in os.environ:
@@ -17,15 +17,9 @@ if "API_KEY" not in os.environ:
 if "DEBUG" not in os.environ:
     os.environ["DEBUG"] = "true"
 
-# Use the actual DATABASE_URL from environment/settings
-test_engine = create_async_engine(
-    settings.DATABASE_URL,  # Use settings instead of hardcoding!
-    echo=False,
-    future=True
-)
-
+# Create session using the app's engine (not a separate test engine)
 TestSessionLocal = sessionmaker(
-    test_engine, class_=AsyncSession, expire_on_commit=False
+    engine, class_=AsyncSession, expire_on_commit=False
 )
 
 @pytest.fixture(scope="session")
@@ -38,10 +32,11 @@ def event_loop():
 @pytest.fixture(scope="session", autouse=True)
 async def setup_database():
     """Create test database tables once per session."""
-    async with test_engine.begin() as conn:
+    # Use the app's engine to create tables
+    async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield
-    await test_engine.dispose()
+    await engine.dispose()
 
 @pytest.fixture(autouse=True)
 async def override_db():
@@ -58,7 +53,7 @@ async def override_db():
     yield
 
     # Clean up after each test - delete all data but keep tables
-    async with test_engine.begin() as conn:
+    async with engine.begin() as conn:
         for table in reversed(Base.metadata.sorted_tables):
             await conn.run_sync(lambda sync_conn, t=table: sync_conn.execute(t.delete()))
 
