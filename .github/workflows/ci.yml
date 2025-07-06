@@ -27,7 +27,7 @@ jobs:
 
     - name: Run tests
       run: |
-        pytest tests/ -v
+        python -m pytest tests/ -v
       env:
         SECRET_KEY: test-secret-key
         API_KEY: test-api-key

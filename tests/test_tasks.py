@@ -1,12 +1,11 @@
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 from main import app
-
 
 @pytest.mark.asyncio
 async def test_create_task():
     """Test task creation"""
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         # Register and login user
         await ac.post("/signup", json={
             "username": "taskuser",
@@ -21,7 +20,7 @@ async def test_create_task():
         token = login_response.json()["access_token"]
         headers = {
             "Authorization": f"Bearer {token}",
-            "x-API-Key": "123456"
+            "x-api-key": "123456"
         }
 
         # Create task
@@ -35,11 +34,10 @@ async def test_create_task():
     assert response.json()["title"] == "Test Task"
     assert response.json()["status"] == "pending"
 
-
 @pytest.mark.asyncio
 async def test_get_tasks():
     """Test getting user tasks"""
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         # Register and login user
         await ac.post("/signup", json={
             "username": "gettaskuser",
@@ -54,7 +52,7 @@ async def test_get_tasks():
         token = login_response.json()["access_token"]
         headers = {
             "Authorization": f"Bearer {token}",
-            "x-API-Key": "123456"
+            "x-api-key": "123456"
         }
 
         # Create a task first
@@ -70,11 +68,10 @@ async def test_get_tasks():
     assert len(response.json()) == 1
     assert response.json()[0]["title"] == "Test Task"
 
-
 @pytest.mark.asyncio
 async def test_unauthorized_access():
     """Test unauthorized access to protected endpoints"""
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         # Try to access tasks without token
         response = await ac.get("/tasks")
         assert response.status_code == 401
