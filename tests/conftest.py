@@ -1,8 +1,12 @@
 import pytest
 import asyncio
 import os
-from app.database import create_tables
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+
 from app.config import settings
+from app.database import get_db, Base  # Import Base and get_db directly
+from main import app  # Import your FastAPI app instance
 
 @pytest.fixture(scope="session")
 def event_loop():
@@ -13,17 +17,51 @@ def event_loop():
 
 @pytest.fixture(scope="session", autouse=True)
 async def setup_test_database():
-    """Ensure database tables exist before any test runs"""
-    # Set test environment variables
-    os.environ["SECRET_KEY"] = "test-secret-key-for-testing-only-must-be-long-enough-32-chars"
-    os.environ["API_KEY"] = "test-api-key"
-    os.environ["DEBUG"] = "True"
+    """
+    Set up a clean in-memory SQLite database for the test session.
+    This fixture runs once per test session.
+    """
+    original_database_url = settings.DATABASE_URL
+    original_secret_key = settings.SECRET_KEY
+    original_api_key = settings.API_KEY
+    original_debug = settings.DEBUG
 
-    # Update settings
+    settings.DATABASE_URL = "sqlite+aiosqlite:///:memory:"
     settings.SECRET_KEY = "test-secret-key-for-testing-only-must-be-long-enough-32-chars"
     settings.API_KEY = "test-api-key"
-    settings.DEBUG = True
+    settings.DEBUG = True 
 
-    # Make sure database tables exist
-    await create_tables()
+    test_engine = create_async_engine(
+        settings.DATABASE_URL,
+        echo=settings.DEBUG,
+        future=True
+    )
+
+    async def override_get_db():
+        TestAsyncSessionLocal = sessionmaker(
+            test_engine, class_=AsyncSession, expire_on_commit=False
+        )
+        async with TestAsyncSessionLocal() as session:
+            try:
+                yield session
+            finally:
+                await session.close()
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    async with test_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
     yield
+
+    async with test_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+
+    await test_engine.dispose()
+
+    settings.DATABASE_URL = original_database_url
+    settings.SECRET_KEY = original_secret_key
+    settings.API_KEY = original_api_key
+    settings.DEBUG = original_debug
+
+    app.dependency_overrides = {}
