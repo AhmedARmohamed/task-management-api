@@ -1,7 +1,7 @@
 import pytest
 from httpx import AsyncClient, ASGITransport
 from main import app
-from tests.test_helpers import generate_random_user, test_user_manager
+from tests.test_helpers import generate_random_user, user_manager
 
 @pytest.mark.asyncio
 async def test_signup():

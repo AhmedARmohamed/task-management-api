@@ -1,30 +1,29 @@
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
-from main import app
-from app.database import get_db, Base
+import asyncio
+import os
+from app.database import create_tables
+from app.config import settings
 
-# Test database
-TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+@pytest.fixture(scope="session")
+def event_loop():
+    """Create an instance of the default event loop for the test session."""
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close()
 
-@pytest.fixture(scope="function")
-async def db_session():
-    """Create test database session"""
-    engine = create_async_engine(TEST_DATABASE_URL, echo=False)
+@pytest.fixture(scope="session", autouse=True)
+async def setup_test_database():
+    """Ensure database tables exist before any test runs"""
+    # Set test environment variables
+    os.environ["SECRET_KEY"] = "test-secret-key-for-testing-only-must-be-long-enough-32-chars"
+    os.environ["API_KEY"] = "test-api-key"
+    os.environ["DEBUG"] = "True"
 
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    # Update settings
+    settings.SECRET_KEY = "test-secret-key-for-testing-only-must-be-long-enough-32-chars"
+    settings.API_KEY = "test-api-key"
+    settings.DEBUG = True
 
-    AsyncTestSession = sessionmaker(
-        engine, class_=AsyncSession, expire_on_commit=False
-    )
-
-    async with AsyncTestSession() as session:
-        yield session
-
-@pytest.fixture(scope="function")
-async def test_app(db_session):
-    """Create test app with test database"""
-    app.dependency_overrides[get_db] = lambda: db_session
-    yield app
-    app.dependency_overrides.clear()
+    # Make sure database tables exist
+    await create_tables()
+    yield

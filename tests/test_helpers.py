@@ -26,7 +26,7 @@ def generate_random_task(title_prefix: str = "Task") -> Dict[str, Any]:
         "status": random.choice(["pending", "completed"])
     }
 
-class TestUserManager:
+class UserManager:
     """Manages test users to avoid conflicts"""
 
     def __init__(self):
@@ -50,4 +50,4 @@ class TestUserManager:
         self.created_users.clear()
 
 # Global instance for convenience
-test_user_manager = TestUserManager()
+user_manager = UserManager()  
