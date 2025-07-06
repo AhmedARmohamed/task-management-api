@@ -23,32 +23,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Create database tables
-      run: |
-        python -c "
-        import asyncio
-        from app.database import Base, engine
-        async def create_tables():
-            async with engine.begin() as conn:
-                await conn.run_sync(Base.metadata.create_all)
-            print('Database tables created successfully!')
-        asyncio.run(create_tables())
-        "
-      env:
-        DATABASE_URL: "sqlite+aiosqlite:///./test.db"
-        SECRET_KEY: "test-secret-key-for-testing-only-must-be-long-enough-32-chars"
-        API_KEY: "123456"
-        DEBUG: "true"
-
-    - name: Run tests
-      run: |
-        pytest tests/ -v
-      env:
-        DATABASE_URL: "sqlite+aiosqlite:///./test.db"
-        SECRET_KEY: "test-secret-key-for-testing-only-must-be-long-enough-32-chars"
-        API_KEY: "123456"
-        DEBUG: "true"
-
     - name: Run tests with coverage
       run: |
         pytest tests/ -v --cov=app --cov-report=term-missing
