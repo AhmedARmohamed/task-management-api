@@ -3,6 +3,7 @@ from httpx import AsyncClient, ASGITransport
 from main import app
 from tests.test_helpers import generate_random_user, generate_random_task
 
+
 @pytest.mark.asyncio
 async def test_create_task():
     """Test task creation"""
@@ -19,7 +20,7 @@ async def test_create_task():
 
         headers = {
             "Authorization": f"Bearer {token}",
-            "x-api-key": "123456"
+            "X-API-Key": "123456"
         }
 
         # Create task
@@ -29,6 +30,7 @@ async def test_create_task():
     assert response.json()["title"] == task_data["title"]
     assert response.json()["description"] == task_data["description"]
     assert response.json()["status"] == task_data["status"]
+
 
 @pytest.mark.asyncio
 async def test_get_tasks():
@@ -46,7 +48,7 @@ async def test_get_tasks():
 
         headers = {
             "Authorization": f"Bearer {token}",
-            "x-api-key": "123456"
+            "X-API-Key": "123456"
         }
 
         # Create a task first
@@ -58,6 +60,7 @@ async def test_get_tasks():
     assert response.status_code == 200
     assert len(response.json()) == 1
     assert response.json()[0]["title"] == task_data["title"]
+
 
 @pytest.mark.asyncio
 async def test_user_isolation():
@@ -77,11 +80,11 @@ async def test_user_isolation():
 
         user1_headers = {
             "Authorization": f"Bearer {user1_login.json()['access_token']}",
-            "x-api-key": "123456"
+            "X-API-Key": "123456"
         }
         user2_headers = {
             "Authorization": f"Bearer {user2_login.json()['access_token']}",
-            "x-api-key": "123456"
+            "X-API-Key": "123456"
         }
 
         # User 1 creates a task
@@ -106,6 +109,7 @@ async def test_user_isolation():
         assert len(user2_data_response) == 1
         assert user2_data_response[0]["title"] == user2_task["title"]
 
+
 @pytest.mark.asyncio
 async def test_unauthorized_access():
     """Test unauthorized access to protected endpoints"""
@@ -119,6 +123,7 @@ async def test_unauthorized_access():
             "Authorization": "Bearer invalid-token"
         })
         assert response.status_code == 401
+
 
 @pytest.mark.asyncio
 async def test_task_validation():
@@ -135,7 +140,7 @@ async def test_task_validation():
 
         headers = {
             "Authorization": f"Bearer {token}",
-            "x-api-key": "123456"
+            "X-API-Key": "123456"
         }
 
         # Test empty title
