@@ -30,9 +30,16 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting up Task Management API...")
-    await create_tables()
-    logger.info("Database tables created successfully")
+
+    # Only create tables if not in test environment
+    if not settings.DATABASE_URL.endswith(":memory:"):
+        await create_tables()
+        logger.info("Database tables created successfully")
+    else:
+        logger.info("Test environment detected - skipping table creation")
+
     yield
+
     # Shutdown
     logger.info("Shutting down Task Management API...")
 
