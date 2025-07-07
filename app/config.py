@@ -28,9 +28,13 @@ class Settings(BaseSettings):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Override with Railway environment variables if present
-        if os.getenv("RAILWAY_ENVIRONMENT"):
+        if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("PORT"):
             self.DEBUG = False
             if os.getenv("PORT"):
                 self.PORT = int(os.getenv("PORT"))
+            # Generate a secure secret key for production if not set
+            if self.SECRET_KEY == "your-secret-key-change-this-in-production":
+                import secrets
+                self.SECRET_KEY = secrets.token_urlsafe(32)
 
 settings = Settings()

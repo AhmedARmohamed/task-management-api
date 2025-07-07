@@ -11,10 +11,12 @@ ENV PYTHONUNBUFFERED=1
 RUN apt-get update && apt-get install -y \
     gcc \
     curl \
+    openssl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
@@ -29,11 +31,11 @@ RUN adduser --disabled-password --gecos '' appuser && \
 USER appuser
 
 # Expose port (Railway will set PORT env var)
-EXPOSE $PORT
+EXPOSE 8000
 
-# Health check
+# Health check - use environment variable for port
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:$PORT/health || exit 1
+    CMD curl -f http://localhost:${PORT:-8000}/health || exit 1
 
 # Start the application
 CMD ["./start.sh"]

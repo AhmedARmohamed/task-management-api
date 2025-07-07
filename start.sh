@@ -9,7 +9,7 @@ echo "Python version: $(python --version)"
 # Railway sets PORT automatically, use it or default to 8000
 export PORT=${PORT:-8000}
 export DATABASE_URL=${DATABASE_URL:-"sqlite+aiosqlite:///./data/tasks.db"}
-export SECRET_KEY=${SECRET_KEY:-"railway-production-secret-key-$(date +%s)"}
+export SECRET_KEY=${SECRET_KEY:-"railway-production-secret-key-$(openssl rand -hex 32)"}
 export API_KEY=${API_KEY:-"123456"}
 export DEBUG=${DEBUG:-"False"}
 
@@ -28,8 +28,13 @@ fi
 # Test if main.py exists
 if [ ! -f "main.py" ]; then
     echo "ERROR: main.py not found!"
+    ls -la
     exit 1
 fi
 
+echo "Testing Python imports..."
+python -c "import fastapi; print('FastAPI imported successfully')"
+python -c "import uvicorn; print('Uvicorn imported successfully')"
+
 echo "Starting FastAPI application on port $PORT..."
-exec uvicorn main:app --host 0.0.0.0 --port $PORT --log-level info
+exec python -m uvicorn main:app --host 0.0.0.0 --port $PORT --log-level info --access-log

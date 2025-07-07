@@ -9,7 +9,11 @@ from datetime import datetime, timedelta
 from typing import List, Optional, Annotated
 import os
 import logging
+import sys
 from contextlib import asynccontextmanager
+
+# Add the app directory to Python path
+sys.path.append('/app')
 
 from app.database import get_db, create_tables, AsyncSessionLocal
 from app.models import User, Task
@@ -19,25 +23,30 @@ from app.config import settings
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO if settings.DEBUG else logging.WARNING,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
 )
 logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    logger.info("Starting up Task Management API...")
+    logger.info("=== Starting up Task Management API ===")
     logger.info(f"Environment: {'Development' if settings.DEBUG else 'Production'}")
     logger.info(f"Port: {settings.PORT}")
+    logger.info(f"Database URL: {settings.DATABASE_URL}")
 
     try:
         await create_tables()
         logger.info("Database tables created successfully")
     except Exception as e:
         logger.error(f"Failed to create database tables: {e}")
-        # Continue startup even if DB creation fails for Railway
+        # Continue startup even if DB creation fails
 
+    logger.info("=== Startup complete ===")
     yield
 
     # Shutdown
@@ -56,7 +65,7 @@ app = FastAPI(
 # Add security middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if settings.DEBUG else ["https://*.railway.app", "https://*.up.railway.app"],
+    allow_origins=["*"],  # Allow all origins for now
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
@@ -102,25 +111,31 @@ async def global_exception_handler(request, exc):
 async def health_check():
     """Health check endpoint for Railway"""
     try:
+        logger.info("Health check requested")
+
         # Test database connection
         async with AsyncSessionLocal() as session:
             await session.execute(select(1))
 
-        return {
+        response = {
             "status": "healthy",
-            "timestamp": datetime.utcnow(),
+            "timestamp": datetime.utcnow().isoformat(),
             "database": "connected",
             "version": "1.0.0",
-            "environment": "production" if not settings.DEBUG else "development"
+            "environment": "production" if not settings.DEBUG else "development",
+            "port": settings.PORT
         }
+        logger.info("Health check passed")
+        return response
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         return JSONResponse(
             status_code=503,
             content={
                 "status": "unhealthy",
-                "timestamp": datetime.utcnow(),
-                "error": str(e)
+                "timestamp": datetime.utcnow().isoformat(),
+                "error": str(e),
+                "port": settings.PORT
             }
         )
 
@@ -128,11 +143,14 @@ async def health_check():
 @app.get("/")
 async def root():
     """Root endpoint"""
+    logger.info("Root endpoint accessed")
     return {
         "message": "Task Management API",
         "version": "1.0.0",
+        "status": "running",
         "docs": "/docs" if settings.DEBUG else "Documentation disabled in production",
-        "health": "/health"
+        "health": "/health",
+        "port": settings.PORT
     }
 
 # Auth endpoints
@@ -416,5 +434,5 @@ if __name__ == "__main__":
         app,
         host="0.0.0.0",
         port=port,
-        log_level="info" if settings.DEBUG else "warning"
+        log_level="info"
     )
