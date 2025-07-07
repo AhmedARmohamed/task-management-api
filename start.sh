@@ -36,7 +36,6 @@ if [ ! -f "main.py" ]; then
     ls -la
     exit 1
 fi
-
 echo "Testing Python imports..."
 python -c "import fastapi; print('FastAPI imported successfully')"
 python -c "import uvicorn; print('Uvicorn imported successfully')"
