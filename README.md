@@ -5,9 +5,9 @@ A **production-ready** FastAPI task management system with enterprise-level secu
 
 ## 🌐 Live Demo
 
-**Live API:** [https://task-management-api.railway.app](https://task-management-api.railway.app)  
-**API Documentation:** [https://task-managment-api.railway.app/docs](https://task-management-api.railway.app/docs)  
-**Health Check:** [https://task-managment-api.railway.app/health](https://task-managament-api.railway.app/health)
+**Live API:** [https://task-management-api.railway.app](https://task-management-api-production-a312.up.railway.app)  
+**API Documentation:** [https://task-managment-api.railway.app/docs](https://task-management-api-production-a312.up.railway.app/docs)  
+**Health Check:** [https://task-managment-api.railway.app/health](https://task-management-api-production-a312.up.railway.app/health)
 
 ## ✨ Key Features
 
