@@ -1,43 +1,6 @@
-#!/bin/bash
-set -e
+#!/bin/sh
+echo "Running database migrations..."
+alembic upgrade head
 
-echo "=== Task Management API Startup ==="
-echo "Current user: $(whoami)"
-echo "Current directory: $(pwd)"
-echo "Python version: $(python --version)"
-
-# Railway sets PORT automatically, use it or default to 8000
-export PORT=${PORT:-8000}
-export DATABASE_URL=${DATABASE_URL:-"sqlite+aiosqlite:///./data/tasks.db"}
-export SECRET_KEY=${SECRET_KEY:-"railway-production-secret-key-$(openssl rand -hex 32)"}
-export API_KEY=${API_KEY:-"123456"}
-export DEBUG=${DEBUG:-"False"}
-
-echo "Environment configured:"
-echo "- PORT: $PORT"
-echo "- DATABASE_URL: $DATABASE_URL"
-echo "- DEBUG: $DEBUG"
-
-# Create data directory for SQLite
-if [[ $DATABASE_URL == *"sqlite"* ]]; then
-    echo "Creating SQLite data directory..."
-    mkdir -p /app/data
-    chmod 755 /app/data
-
-# add explicit path for sqlite
-mkdir -p /app/data
-chmod 755 /app/data
-touch /app/data/tasks.db
-chown appuser:appuser /app/data/tasks.db Test if main.py exists
-
-if [ ! -f "main.py" ]; then
-    echo "ERROR: main.py not found!"
-    ls -la
-    exit 1
-fi
-echo "Testing Python imports..."
-python -c "import fastapi; print('FastAPI imported successfully')"
-python -c "import uvicorn; print('Uvicorn imported successfully')"
-
-echo "Starting FastAPI application on port $PORT..."
-exec python -m uvicorn main:app --host 0.0.0.0 --port $PORT --log-level info --access-log
+echo "Starting FastAPI application on port ${PORT:-8000}..."
+uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}
