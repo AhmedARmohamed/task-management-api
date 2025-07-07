@@ -15,7 +15,7 @@ class Settings(BaseSettings):
 
     # App
     APP_NAME: str = "Task Management API"
-    DEBUG: bool = False
+    DEBUG: bool = True
 
     class Config:
         env_file = ".env"

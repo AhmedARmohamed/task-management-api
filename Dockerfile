@@ -17,11 +17,11 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Create non-root user
+RUN adduser --disabled-password --gecos '' appuser
+
 # Copy application code
 COPY . .
-
-# Create non-root user FIRST
-RUN adduser --disabled-password --gecos '' appuser
 
 # Create data directory and set permissions
 RUN mkdir -p /app/data && \
@@ -34,9 +34,9 @@ USER appuser
 # Expose port
 EXPOSE 8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=30s --start-period=40s --retries=3 \
+# Health check with longer timeout
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Start the application using the start script
+# Start the application
 CMD ["./start.sh"]

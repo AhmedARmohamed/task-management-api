@@ -29,7 +29,7 @@ async def lifespan(app: FastAPI):
         logger.info("Database tables created successfully")
     except Exception as e:
         logger.error(f"Failed to create database tables: {e}")
-        # Don't fail startup - let the app start and handle DB errors per request
+        # Continue startup even if DB creation fails
 
     yield
     # Shutdown
@@ -80,7 +80,23 @@ async def get_authenticated_user(
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
-    return {"status": "healthy", "timestamp": datetime.utcnow()}
+    try:
+        # Test database connection
+        async with AsyncSessionLocal() as session:
+            await session.execute(select(1))
+
+        return {
+            "status": "healthy",
+            "timestamp": datetime.utcnow(),
+            "database": "connected"
+        }
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        return {
+            "status": "unhealthy",
+            "timestamp": datetime.utcnow(),
+            "error": str(e)
+        }
 
 # Auth endpoints
 @app.post("/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
