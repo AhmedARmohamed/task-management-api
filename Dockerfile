@@ -17,26 +17,28 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Create non-root user
-RUN adduser --disabled-password --gecos '' appuser
-
 # Copy application code
 COPY . .
 
-# Create data directory and set permissions
-RUN mkdir -p /app/data && \
-    chmod +x /app/start.sh && \
+# Copy and make start.sh executable
+COPY start.sh .
+RUN chmod +x start.sh
+
+# Create non-root user
+RUN adduser --disabled-password --gecos '' appuser && \
     chown -R appuser:appuser /app
 
-# Switch to non-root user
+# Create data directory for SQLite
+RUN mkdir -p /app/data && chown appuser:appuser /app/data
+
 USER appuser
 
 # Expose port
 EXPOSE 8000
 
-# Health check with longer timeout
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Start the application
+# Run migrations and start the app
 CMD ["./start.sh"]
