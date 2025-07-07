@@ -3,15 +3,21 @@ import sys
 from logging.config import fileConfig
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
+from sqlalchemy.orm import declarative_base
 from alembic import context
 
 # Add the project root to the Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Import your models - but we need to import Base directly to avoid async issues
-from app.database import Base
+# Create Base directly to avoid importing from app.database (which creates async engine)
+Base = declarative_base()
 
-# Import models to ensure they're registered with Base.metadata
+# Import models after Base is created
+# We need to temporarily set the Base in the models module
+import app.models
+app.models.Base = Base
+
+# Import the actual model classes to register them with metadata
 from app.models import User, Task
 
 # this is the Alembic Config object, which provides

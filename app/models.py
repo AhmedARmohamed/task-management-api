@@ -4,7 +4,8 @@ from sqlalchemy.sql import func
 from datetime import datetime
 import enum
 
-from app.database import Base
+# Base will be set by the importing module (either database.py or alembic/env.py)
+Base = None
 
 class TaskStatus(str, enum.Enum):
     """Task status enumeration"""
@@ -20,6 +21,7 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     created_at = Column(DateTime, default=func.now())
 
+    # Relationship
     tasks = relationship("Task", back_populates="user", cascade="all, delete-orphan")
 
 class Task(Base):
@@ -33,4 +35,5 @@ class Task(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, default=func.now())
 
+    # Relationship
     user = relationship("User", back_populates="tasks")
