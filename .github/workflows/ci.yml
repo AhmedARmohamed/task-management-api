@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [ main, develop ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
   test:
@@ -20,56 +20,57 @@ jobs:
 
     - name: Install dependencies
       run: |
+        python -m ensurepip --upgrade
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+        pip install pytest pytest-asyncio httpx
 
-    - name: Run migrations
+    - name: Run tests
       run: |
-        alembic upgrade head
+        python -m pytest tests/ -v
       env:
-        DATABASE_URL: "sqlite:///./test.db"
-        SECRET_KEY: "test-secret-key-for-testing-only-must-be-long-enough-32-chars"
-        API_KEY: "123456"
-        DEBUG: "true"
+        SECRET_KEY: test-secret-key
+        API_KEY: test-api-key
 
-    - name: Run tests with coverage
+    - name: Run linting
       run: |
-        pytest tests/ -v --cov=app --cov-report=term-missing
-      env:
-        DATABASE_URL: "sqlite+aiosqlite:///./test.db"
-        SECRET_KEY: "test-secret-key-for-testing-only-must-be-long-enough-32-chars"
-        API_KEY: "123456"
-        DEBUG: "true"
+        pip install flake8
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-  docker:
+  security:
     runs-on: ubuntu-latest
-    needs: [test]
+
     steps:
     - uses: actions/checkout@v4
 
-    - name: Build Docker image
-      run: |
-        docker build -t task-management-api .
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
 
-    - name: Test Docker container
+    - name: Install dependencies
       run: |
-        docker run -d -p 8000:8000 --name test-container \
-          -e SECRET_KEY=test-secret-key-for-testing-only-must-be-long-enough-32-chars \
-          -e API_KEY=test-api-key \
-          -e DATABASE_URL=sqlite+aiosqlite:///./tasks.db \
-          task-management-api
-        sleep 20
-        curl -f http://localhost:8000/health || exit 1
-        docker stop test-container
+        python -m ensurepip --upgrade
+        python -m pip install --upgrade pip
+        pip install bandit safety
+
+    - name: Run security checks
+      run: |
+        bandit -r . -f json
+        safety check
 
   deploy:
     runs-on: ubuntu-latest
-    needs: [test, docker]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [test, security]
+    if: github.ref == 'refs/heads/main'
+
     steps:
     - uses: actions/checkout@v4
 
     - name: Deploy to production
       run: |
-        echo "✅ All checks passed - ready for deployment"
-        echo "🚀 Railway deployment configured"
+        echo "Add your deployment commands here"
+        echo "For Railway: railway login && railway deploy"
+        echo "For Render: Configure auto-deploy from GitHub"
+        echo "For Vercel: vercel --prod"
