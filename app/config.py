@@ -5,7 +5,7 @@ class Settings(BaseSettings):
     """Application settings"""
 
     # Database
-    DATABASE_URL: str = "sqlite+aiosqlite:///./tasks.db"
+    DATABASE_URL: str = "sqlite+aiosqlite:///./data/tasks.db"
 
     # Security
     SECRET_KEY: str = "your-secret-key-change-this-in-production"
