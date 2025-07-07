@@ -4,6 +4,10 @@ echo "=== Task Management API Startup ==="
 echo "Environment: ${RAILWAY_ENVIRONMENT:-local}"
 echo "Port: ${PORT:-8000}"
 
+# Memory optimizations
+export PYTHONOPTIMIZE=2
+export MALLOC_ARENA_MAX=2
+
 # Create data directory if it doesn't exist
 mkdir -p /app/data
 
@@ -34,4 +38,4 @@ echo "Starting FastAPI application..."
 echo "Listening on 0.0.0.0:${PORT:-8000}"
 
 # Start the FastAPI application
-exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --log-level info
+exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1 --loop asyncio --log-level error
