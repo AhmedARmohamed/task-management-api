@@ -3,6 +3,7 @@ from httpx import AsyncClient, ASGITransport
 from main import app
 from tests.test_helpers import generate_random_user, user_manager
 
+
 @pytest.mark.asyncio
 async def test_signup():
     """Test user registration"""
@@ -15,6 +16,7 @@ async def test_signup():
     assert response.status_code == 201
     assert response.json()["username"] == user_data["username"]
     assert "id" in response.json()
+
 
 @pytest.mark.asyncio
 async def test_signup_duplicate_username():
@@ -33,6 +35,7 @@ async def test_signup_duplicate_username():
     assert response2.status_code == 400
     assert "already registered" in response2.json()["detail"]
 
+
 @pytest.mark.asyncio
 async def test_login():
     """Test user login"""
@@ -50,6 +53,7 @@ async def test_login():
     assert response.status_code == 200
     assert "access_token" in response.json()
     assert response.json()["token_type"] == "bearer"
+
 
 @pytest.mark.asyncio
 async def test_login_invalid_credentials():

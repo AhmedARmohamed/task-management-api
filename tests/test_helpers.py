@@ -3,6 +3,7 @@ import random
 import string
 from typing import Dict, Any
 
+
 def generate_random_user() -> Dict[str, str]:
     """Generate a random user with unique username and password"""
     # Create unique username with timestamp-like suffix
@@ -17,6 +18,7 @@ def generate_random_user() -> Dict[str, str]:
         "password": password
     }
 
+
 def generate_random_task(title_prefix: str = "Task") -> Dict[str, Any]:
     """Generate a random task with unique title"""
     random_id = uuid.uuid4().hex[:8]
@@ -25,6 +27,7 @@ def generate_random_task(title_prefix: str = "Task") -> Dict[str, Any]:
         "description": f"Test description for {title_prefix}_{random_id}",
         "status": random.choice(["pending", "completed"])
     }
+
 
 class UserManager:
     """Manages test users to avoid conflicts"""
@@ -49,5 +52,6 @@ class UserManager:
         """Clear created users list"""
         self.created_users.clear()
 
+
 # Global instance for convenience
-user_manager = UserManager()  
+user_manager = UserManager()

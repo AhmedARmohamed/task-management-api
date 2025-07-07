@@ -30,6 +30,7 @@ TestSessionLocal = sessionmaker(
     expire_on_commit=False
 )
 
+
 @pytest.fixture(scope="session")
 def event_loop():
     """Create an instance of the default event loop for the test session."""
@@ -37,6 +38,7 @@ def event_loop():
     asyncio.set_event_loop(loop)
     yield loop
     loop.close()
+
 
 @pytest.fixture(scope="session", autouse=True)
 async def setup_database():
@@ -78,11 +80,13 @@ async def setup_database():
     if os.path.exists("test.db"):
         os.remove("test.db")
 
+
 @pytest.fixture
 async def db_session():
     """Get a test database session."""
     async with TestSessionLocal() as session:
         yield session
+
 
 @pytest.fixture(autouse=True)
 async def setup_test(db_session):
