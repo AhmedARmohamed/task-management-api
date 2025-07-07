@@ -19,11 +19,10 @@ echo "- DATABASE_URL: $DATABASE_URL"
 echo "- DEBUG: $DEBUG"
 
 # Create data directory for SQLite
-if [ -z "$DATABASE_URL" ]; then
-    export DATABASE_URL="sqlite+aiosqlite:////app/data/tasks.db"
-else
-    echo "Using provided DATABASE_URL"
-fi
+if [[ $DATABASE_URL == *"sqlite"* ]]; then
+    echo "Creating SQLite data directory..."
+    mkdir -p /app/data
+    chmod 755 /app/data
 
 # add explicit path for sqlite
 mkdir -p /app/data
