@@ -8,8 +8,10 @@ from alembic import context
 # Add the project root to the Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Import your models
+# Import your models - but we need to import Base directly to avoid async issues
 from app.database import Base
+
+# Import models to ensure they're registered with Base.metadata
 from app.models import User, Task
 
 # this is the Alembic Config object, which provides
@@ -32,17 +34,24 @@ target_metadata = Base.metadata
 
 
 def get_database_url():
-    """Get database URL from environment or config"""
+    """Get database URL from environment or config, converted for sync use"""
     # Check for Railway DATABASE_URL environment variable
     database_url = os.getenv("DATABASE_URL")
 
     if database_url:
-        # Convert postgres:// to postgresql:// for SQLAlchemy
-        if database_url.startswith("postgres://"):
+        # Convert async URLs to sync URLs for migrations
+        if database_url.startswith("postgresql+asyncpg://"):
+            # Convert asyncpg to psycopg2 for sync migrations
+            database_url = database_url.replace("postgresql+asyncpg://", "postgresql://", 1)
+        elif database_url.startswith("postgres://"):
+            # Convert postgres:// to postgresql:// for SQLAlchemy
             database_url = database_url.replace("postgres://", "postgresql://", 1)
+        elif database_url.startswith("sqlite+aiosqlite://"):
+            # Convert async sqlite to sync sqlite
+            database_url = database_url.replace("sqlite+aiosqlite://", "sqlite://", 1)
         return database_url
 
-    # Fallback to config file
+    # Fallback to config file (already sync)
     return config.get_main_option("sqlalchemy.url")
 
 
