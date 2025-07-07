@@ -7,10 +7,9 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Install system dependencies including curl for healthcheck
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
-    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install Python dependencies
@@ -20,17 +19,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Copy and make start.sh executable
-COPY start.sh .
-RUN chmod +x start.sh
-
-# Create non-root user
-RUN adduser --disabled-password --gecos '' appuser && \
-    chown -R appuser:appuser /app
-
-# Create data directory for SQLite
-RUN mkdir -p /app/data && chown appuser:appuser /app/data
-
+# Make start.sh executable
+RUN chown -R appuser:appuser /app
+# Switch to non-root user
 USER appuser
 
 # Expose port
@@ -38,7 +29,7 @@ EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+    CMD curl -f http://localhost:${PORT:-8000}/health || exit 1
 
-# Run migrations and start the app
-CMD ["./start.sh"]
+# Start the application
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
