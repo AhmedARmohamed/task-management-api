@@ -19,13 +19,18 @@ echo "- DATABASE_URL: $DATABASE_URL"
 echo "- DEBUG: $DEBUG"
 
 # Create data directory for SQLite
-if [[ $DATABASE_URL == *"sqlite"* ]]; then
-    echo "Creating SQLite data directory..."
-    mkdir -p /app/data
-    chmod 755 /app/data
+if [ -z "$DATABASE_URL" ]; then
+    export DATABASE_URL="sqlite+aiosqlite:////app/data/tasks.db"
+else
+    echo "Using provided DATABASE_URL"
 fi
 
-# Test if main.py exists
+# add explicit path for sqlite
+mkdir -p /app/data
+chmod 755 /app/data
+touch /app/data/tasks.db
+chown appuser:appuser /app/data/tasks.db Test if main.py exists
+
 if [ ! -f "main.py" ]; then
     echo "ERROR: main.py not found!"
     ls -la
