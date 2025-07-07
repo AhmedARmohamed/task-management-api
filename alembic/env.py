@@ -3,42 +3,49 @@ from sqlalchemy import engine_from_config, create_engine
 from sqlalchemy import pool
 from alembic import context
 import os
-import sys
-from pathlib import Path
-
-# Add parent directory to path
-sys.path.append(str(Path(__file__).parent.parent))
-
-# Import after adding to path
-from app.models import User, Task  # Import all models
-from app.config import settings
-
-# Import Base separately to avoid circular imports
-from sqlalchemy.orm import declarative_base
-Base = declarative_base()
-
-# Import models to ensure they're registered with Base
-from app.models import User, Task
 
 # this is the Alembic Config object
 config = context.config
 
-# Get DATABASE_URL and convert async to sync for Alembic
-database_url = os.environ.get("DATABASE_URL", settings.DATABASE_URL)
-# Convert async SQLite URL to sync for Alembic
+# Get DATABASE_URL from environment
+database_url = os.environ.get("DATABASE_URL", "sqlite:///./tasks.db")
+# Ensure it's sync SQLite for Alembic
 if "sqlite+aiosqlite" in database_url:
     database_url = database_url.replace("sqlite+aiosqlite", "sqlite")
 
-# Set the database URL for Alembic
 config.set_main_option("sqlalchemy.url", database_url)
 
 # Interpret the config file for Python logging
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Use the actual Base from your models
-from app.database import Base
-target_metadata = Base.metadata
+# Import your models' Base metadata
+# This is a simple approach that doesn't import the whole app
+from sqlalchemy import MetaData, Table, Column, Integer, String, DateTime, ForeignKey, Enum
+import sqlalchemy as sa
+
+target_metadata = MetaData()
+
+# Define tables directly for migrations
+users_table = Table(
+    'users',
+    target_metadata,
+    Column('id', Integer, primary_key=True, index=True),
+    Column('username', String, unique=True, index=True, nullable=False),
+    Column('hashed_password', String, nullable=False),
+    Column('created_at', DateTime, default=sa.func.now()),
+)
+
+tasks_table = Table(
+    'tasks',
+    target_metadata,
+    Column('id', Integer, primary_key=True, index=True),
+    Column('title', String, nullable=False),
+    Column('description', String, nullable=True),
+    Column('status', Enum('PENDING', 'COMPLETED', name='taskstatus'), default='PENDING'),
+    Column('user_id', Integer, ForeignKey('users.id'), nullable=False),
+    Column('created_at', DateTime, default=sa.func.now()),
+)
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode."""
@@ -55,7 +62,6 @@ def run_migrations_offline() -> None:
 
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
-    # Create a sync engine for Alembic
     connectable = create_engine(
         config.get_main_option("sqlalchemy.url"),
         poolclass=pool.NullPool,
