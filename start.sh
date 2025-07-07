@@ -25,6 +25,11 @@ else
     echo "Running in local environment"
 fi
 
+# Run database migrations
+echo "Running database migrations..."
+alembic upgrade head
+echo "Database migrations completed!"
+
 echo "Starting FastAPI application..."
 echo "Listening on 0.0.0.0:${PORT:-8000}"
 
