@@ -1,6 +1,7 @@
 from pydantic_settings import BaseSettings
 from typing import Optional
 import os
+import secrets
 
 class Settings(BaseSettings):
     """Application settings"""
@@ -18,23 +19,30 @@ class Settings(BaseSettings):
     APP_NAME: str = "Task Management API"
     DEBUG: bool = False
 
-    # Railway specific
-    PORT: int = 8000
-
     class Config:
         env_file = ".env"
         case_sensitive = True
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # Override with Railway environment variables if present
-        if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("PORT"):
+
+        # Auto-generate secure secret key if using default
+        if self.SECRET_KEY == "your-secret-key-change-this-in-production":
+            self.SECRET_KEY = secrets.token_urlsafe(32)
+
+        # Handle Railway PostgreSQL URL if provided
+        database_url = os.getenv("DATABASE_URL")
+        if database_url:
+            # Convert postgres:// to postgresql+asyncpg:// for async support
+            if database_url.startswith("postgres://"):
+                self.DATABASE_URL = database_url.replace("postgres://", "postgresql+asyncpg://", 1)
+            elif database_url.startswith("postgresql://"):
+                self.DATABASE_URL = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+            else:
+                self.DATABASE_URL = database_url
+
+        # Set production mode if PORT is set (Railway environment)
+        if os.getenv("PORT"):
             self.DEBUG = False
-            if os.getenv("PORT"):
-                self.PORT = int(os.getenv("PORT"))
-            # Generate a secure secret key for production if not set
-            if self.SECRET_KEY == "your-secret-key-change-this-in-production":
-                import secrets
-                self.SECRET_KEY = secrets.token_urlsafe(32)
 
 settings = Settings()

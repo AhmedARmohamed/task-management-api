@@ -12,9 +12,6 @@ import logging
 import sys
 from contextlib import asynccontextmanager
 
-# Add the app directory to Python path
-sys.path.append('/app')
-
 from app.database import get_db, create_tables, AsyncSessionLocal
 from app.models import User, Task
 from app.schemas import UserCreate, UserResponse, TaskCreate, TaskResponse, TaskUpdate, Token
@@ -25,9 +22,7 @@ from app.config import settings
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.StreamHandler(sys.stdout)
-    ]
+    handlers=[logging.StreamHandler(sys.stdout)]
 )
 logger = logging.getLogger(__name__)
 
@@ -36,15 +31,19 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("=== Starting up Task Management API ===")
     logger.info(f"Environment: {'Development' if settings.DEBUG else 'Production'}")
-    logger.info(f"Port: {settings.PORT}")
     logger.info(f"Database URL: {settings.DATABASE_URL}")
 
     try:
-        await create_tables()
-        logger.info("Database tables created successfully")
+        # In production, migrations should be run before starting the app
+        # This is just a fallback for development
+        if settings.DEBUG:
+            await create_tables()
+            logger.info("Database tables created successfully (development mode)")
+        else:
+            logger.info("Production mode: assuming migrations have been run")
     except Exception as e:
-        logger.error(f"Failed to create database tables: {e}")
-        # Continue startup even if DB creation fails
+        logger.error(f"Database initialization error: {e}")
+        # Continue startup - migrations should handle this in production
 
     logger.info("=== Startup complete ===")
     yield
@@ -57,15 +56,15 @@ app = FastAPI(
     description="A secure, production-ready task management system with user authentication",
     version="1.0.0",
     lifespan=lifespan,
-    docs_url="/docs" if settings.DEBUG else None,
-    redoc_url="/redoc" if settings.DEBUG else None,
-    openapi_url="/openapi.json" if settings.DEBUG else None
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json"
 )
 
 # Add security middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for now
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
@@ -122,8 +121,7 @@ async def health_check():
             "timestamp": datetime.utcnow().isoformat(),
             "database": "connected",
             "version": "1.0.0",
-            "environment": "production" if not settings.DEBUG else "development",
-            "port": settings.PORT
+            "environment": "production" if not settings.DEBUG else "development"
         }
         logger.info("Health check passed")
         return response
@@ -134,8 +132,7 @@ async def health_check():
             content={
                 "status": "unhealthy",
                 "timestamp": datetime.utcnow().isoformat(),
-                "error": str(e),
-                "port": settings.PORT
+                "error": str(e)
             }
         )
 
@@ -148,9 +145,8 @@ async def root():
         "message": "Task Management API",
         "version": "1.0.0",
         "status": "running",
-        "docs": "/docs" if settings.DEBUG else "Documentation disabled in production",
-        "health": "/health",
-        "port": settings.PORT
+        "docs": "/docs",
+        "health": "/health"
     }
 
 # Auth endpoints
