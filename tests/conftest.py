@@ -1,61 +1,103 @@
 import pytest
 import asyncio
 import os
-from sqlalchemy.ext.asyncio import AsyncSession
+from subprocess import run, PIPE
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-from app.database import Base, get_db, engine  
+from app.database import Base, get_db
 from app.config import settings
 from main import app
 
-# Set test environment variables if not already set by CI
-if "DATABASE_URL" not in os.environ:
-    os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
-if "SECRET_KEY" not in os.environ:
-    os.environ["SECRET_KEY"] = "test-secret-key-for-testing-only-must-be-long-enough-32-chars"
-if "API_KEY" not in os.environ:
-    os.environ["API_KEY"] = "123456"
-if "DEBUG" not in os.environ:
-    os.environ["DEBUG"] = "true"
+# Force test database for all tests
+TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 
-# Create session using the app's engine (not a separate test engine)
+# Override settings before importing anything else
+os.environ["DATABASE_URL"] = TEST_DATABASE_URL
+os.environ["SECRET_KEY"] = "test-secret-key-for-testing-only-must-be-long-enough-32-chars"
+os.environ["API_KEY"] = "123456"
+os.environ["DEBUG"] = "true"
+
+# Create test engine
+test_engine = create_async_engine(
+    TEST_DATABASE_URL,
+    echo=True,  # Set to False to reduce output
+    future=True
+)
+
 TestSessionLocal = sessionmaker(
-    engine, class_=AsyncSession, expire_on_commit=False
+    test_engine,
+    class_=AsyncSession,
+    expire_on_commit=False
 )
 
 @pytest.fixture(scope="session")
 def event_loop():
     """Create an instance of the default event loop for the test session."""
     loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     yield loop
     loop.close()
 
 @pytest.fixture(scope="session", autouse=True)
 async def setup_database():
-    """Create test database tables once per session."""
-    # Use the app's engine to create tables
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    """Setup test database with migrations."""
+    # Remove test database if exists
+    if os.path.exists("test.db"):
+        os.remove("test.db")
+
+    # Run migrations using alembic
+    env = os.environ.copy()
+    env["DATABASE_URL"] = "sqlite:///./test.db"
+
+    result = run(
+        ["alembic", "upgrade", "head"],
+        env=env,
+        stdout=PIPE,
+        stderr=PIPE,
+        text=True
+    )
+
+    if result.returncode != 0:
+        print(f"Migration failed!")
+        print(f"STDOUT: {result.stdout}")
+        print(f"STDERR: {result.stderr}")
+
+        # Fallback: create tables directly if migrations fail
+        print("Falling back to direct table creation...")
+        async with test_engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+    else:
+        print("Migrations applied successfully")
+
     yield
-    await engine.dispose()
+
+    # Cleanup
+    await test_engine.dispose()
+
+    # Remove test database after all tests
+    if os.path.exists("test.db"):
+        os.remove("test.db")
+
+@pytest.fixture
+async def db_session():
+    """Get a test database session."""
+    async with TestSessionLocal() as session:
+        yield session
 
 @pytest.fixture(autouse=True)
-async def override_db():
-    """Override database dependency for each test."""
-    async def get_test_db():
-        async with TestSessionLocal() as session:
-            try:
-                yield session
-            finally:
-                await session.close()
+async def setup_test(db_session):
+    # Override the get_db dependency
+    async def override_get_db():
+        yield db_session
 
-    # Override the dependency
-    app.dependency_overrides[get_db] = get_test_db
+    app.dependency_overrides[get_db] = override_get_db
+
     yield
 
-    # Clean up after each test - delete all data but keep tables
-    async with engine.begin() as conn:
-        for table in reversed(Base.metadata.sorted_tables):
-            await conn.run_sync(lambda sync_conn, t=table: sync_conn.execute(t.delete()))
+    # Cleanup after each test - clear all data but keep schema
+    for table in reversed(Base.metadata.sorted_tables):
+        await db_session.execute(table.delete())
+    await db_session.commit()
 
-    # Clear overrides
+    # Clear dependency overrides
     app.dependency_overrides.clear()

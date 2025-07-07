@@ -6,9 +6,10 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=sqlite+aiosqlite:///./tasks.db
+      - DATABASE_URL=sqlite+aiosqlite:///./data/tasks.db
       - SECRET_KEY=your-secret-key-change-this-in-production
       - API_KEY=123456
+      - DEBUG=false
     volumes:
       - ./data:/app/data
     restart: unless-stopped

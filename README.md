@@ -1,16 +1,13 @@
 # 🚀 Task Management API - Production Ready
 
-[![CI/CD Pipeline](https://github.com/yourusername/fastapi-task-management/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/fastapi-task-management/actions)
-[![Code Coverage](https://codecov.io/gh/yourusername/fastapi-task-management/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/fastapi-task-management)
-[![Security Rating](https://img.shields.io/badge/security-A+-green)](https://github.com/yourusername/fastapi-task-management)
 
 A **production-ready** FastAPI task management system with enterprise-level security, comprehensive testing, and deployment automation. Built with modern Python async/await patterns and following industry best practices.
 
 ## 🌐 Live Demo
 
-**Live API:** [https://your-app-name.railway.app](https://your-app-name.railway.app)  
-**API Documentation:** [https://your-app-name.railway.app/docs](https://your-app-name.railway.app/docs)  
-**Health Check:** [https://your-app-name.railway.app/health](https://your-app-name.railway.app/health)
+**Live API:** [https://task-management-api.railway.app](https://task-management-api.railway.app)  
+**API Documentation:** [https://task-managment-api.railway.app/docs](https://task-management-api.railway.app/docs)  
+**Health Check:** [https://task-managment-api.railway.app/health](https://task-managament-api.railway.app/health)
 
 ## ✨ Key Features
 
@@ -41,27 +38,13 @@ A **production-ready** FastAPI task management system with enterprise-level secu
 - **Health Monitoring**: Built-in health check endpoints
 - **Logging**: Structured logging with configurable levels
 
-## 📋 Assessment Requirements Compliance
-
-| Requirement | Status | Implementation |
-|-------------|--------|----------------|
-| **Functionality** | ✅ | All endpoints working as specified |
-| **Authentication** | ✅ | JWT + API Key dual protection |
-| **Database** | ✅ | SQLite with proper async SQLAlchemy |
-| **Security** | ✅ | Bcrypt hashing, input validation |
-| **Documentation** | ✅ | Comprehensive README + API docs |
-| **Deployment** | ✅ | Live on Railway with CI/CD |
-| **Testing** | ✅ | Pytest with async support |
-| **Code Quality** | ✅ | Clean architecture, type hints |
-| **Git Practices** | ✅ | Meaningful commits, branching |
-
 ## 🚀 Quick Start
 
 ### Option 1: Local Development
 
 ```bash
 # 1. Clone and setup
-git clone https://github.com/yourusername/fastapi-task-management.git
+git clone https://github.com/AhmedARmohamed/fastapi-task-management.git
 cd fastapi-task-management
 
 # 2. Create virtual environment

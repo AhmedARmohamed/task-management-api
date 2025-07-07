@@ -3,7 +3,6 @@ from datetime import datetime
 from typing import Optional
 from app.models import TaskStatus
 
-# User schemas
 class UserBase(BaseModel):
     """Base user schema"""
     username: str = Field(..., min_length=3, max_length=50)
@@ -19,7 +18,6 @@ class UserResponse(UserBase):
     class Config:
         from_attributes = True
 
-# Task schemas
 class TaskBase(BaseModel):
     """Base task schema"""
     title: str = Field(..., min_length=1, max_length=200)
@@ -45,7 +43,6 @@ class TaskResponse(TaskBase):
     class Config:
         from_attributes = True
 
-# Auth schemas
 class Token(BaseModel):
     """Token response schema"""
     access_token: str
