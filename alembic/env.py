@@ -1,79 +1,57 @@
-import os
-import sys
+import sqlalchemy as sa
+from sqlalchemy import MetaData, Table, Column, Integer, String, DateTime, ForeignKey, Enum
 from logging.config import fileConfig
-from sqlalchemy import engine_from_config
+from sqlalchemy import engine_from_config, create_engine
 from sqlalchemy import pool
-from sqlalchemy.orm import declarative_base
 from alembic import context
+import os
 
-# Add the project root to the Python path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-# Create Base directly to avoid importing from app.database (which creates async engine)
-Base = declarative_base()
-
-# Import models after Base is created
-# We need to temporarily set the Base in the models module
-import app.models
-app.models.Base = Base
-
-# Import the actual model classes to register them with metadata
-from app.models import User, Task
-
-# this is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
+# this is the Alembic Config object
 config = context.config
 
-# Interpret the config file for Python logging.
-# This line sets up loggers basically.
+# Get DATABASE_URL from environment
+database_url = os.environ.get("DATABASE_URL", "sqlite:///./tasks.db")
+# Ensure it's sync SQLite for Alembic
+if "sqlite+aiosqlite" in database_url:
+    database_url = database_url.replace("sqlite+aiosqlite", "sqlite")
+
+config.set_main_option("sqlalchemy.url", database_url)
+
+# Interpret the config file for Python logging
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# add your model's MetaData object here
-# for 'autogenerate' support
-target_metadata = Base.metadata
+# Import your models' Base metadata
+# This is a simple approach that doesn't import the whole app
 
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
+target_metadata = MetaData()
 
+# Define tables directly for migrations
+users_table = Table(
+    'users',
+    target_metadata,
+    Column('id', Integer, primary_key=True, index=True),
+    Column('username', String, unique=True, index=True, nullable=False),
+    Column('hashed_password', String, nullable=False),
+    Column('created_at', DateTime, default=sa.func.now()),
+)
 
-def get_database_url():
-    """Get database URL from environment or config, converted for sync use"""
-    # Check for Railway DATABASE_URL environment variable
-    database_url = os.getenv("DATABASE_URL")
-
-    if database_url:
-        # Convert async URLs to sync URLs for migrations
-        if database_url.startswith("postgresql+asyncpg://"):
-            # Convert asyncpg to psycopg2 for sync migrations
-            database_url = database_url.replace("postgresql+asyncpg://", "postgresql://", 1)
-        elif database_url.startswith("postgres://"):
-            # Convert postgres:// to postgresql:// for SQLAlchemy
-            database_url = database_url.replace("postgres://", "postgresql://", 1)
-        elif database_url.startswith("sqlite+aiosqlite://"):
-            # Convert async sqlite to sync sqlite
-            database_url = database_url.replace("sqlite+aiosqlite://", "sqlite://", 1)
-        return database_url
-
-    # Fallback to config file (already sync)
-    return config.get_main_option("sqlalchemy.url")
+tasks_table = Table(
+    'tasks',
+    target_metadata,
+    Column('id', Integer, primary_key=True, index=True),
+    Column('title', String, nullable=False),
+    Column('description', String, nullable=True),
+    Column('status', Enum('PENDING', 'COMPLETED',
+           name='taskstatus'), default='PENDING'),
+    Column('user_id', Integer, ForeignKey('users.id'), nullable=False),
+    Column('created_at', DateTime, default=sa.func.now()),
+)
 
 
 def run_migrations_offline() -> None:
-    """Run migrations in 'offline' mode.
-
-    This configures the context with just a URL
-    and not an Engine, though an Engine is acceptable
-    here as well.  By skipping the Engine creation
-    we don't even need a DBAPI to be available.
-
-    Calls to context.execute() here emit the given string to the
-    script output.
-
-    """
-    url = get_database_url()
+    """Run migrations in 'offline' mode."""
+    url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -86,24 +64,16 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    """Run migrations in 'online' mode.
-
-    In this scenario we need to create an Engine
-    and associate a connection with the context.
-
-    """
-    # Override the sqlalchemy.url in the config
-    config.set_main_option("sqlalchemy.url", get_database_url())
-
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
+    """Run migrations in 'online' mode."""
+    connectable = create_engine(
+        config.get_main_option("sqlalchemy.url"),
         poolclass=pool.NullPool,
     )
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection,
+            target_metadata=target_metadata
         )
 
         with context.begin_transaction():

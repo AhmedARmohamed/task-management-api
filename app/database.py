@@ -1,4 +1,3 @@
-import app.models
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from app.config import settings
@@ -13,18 +12,11 @@ engine = create_async_engine(
     future=True
 )
 
-# Create async session factory
 AsyncSessionLocal = sessionmaker(
     engine, class_=AsyncSession, expire_on_commit=False
 )
 
-# Base class for models
 Base = declarative_base()
-
-# Set Base in models module to avoid circular imports
-app.models.Base = Base
-
-# Dependency to get database session
 
 
 async def get_db():
@@ -34,8 +26,6 @@ async def get_db():
             yield session
         finally:
             await session.close()
-
-# Create tables
 
 
 async def create_tables():
